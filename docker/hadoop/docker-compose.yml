@@ -1,0 +1,97 @@
+services:
+  hadoop-namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    pull_policy: never
+    container_name: egx-hadoop-namenode
+    hostname: hadoop-namenode
+    restart: unless-stopped
+    environment:
+      CLUSTER_NAME: egx-cluster
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      HDFS_CONF_dfs_namenode_rpc-address: hadoop-namenode:8020
+      HDFS_CONF_dfs_replication: 1
+    ports:
+      - "9870:9870"
+      - "8020:8020"
+    volumes:
+      - hadoop-namenode:/hadoop/dfs/name
+    networks:
+      - egx-network
+
+  hadoop-datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    pull_policy: never
+    container_name: egx-hadoop-datanode
+    hostname: hadoop-datanode
+    restart: unless-stopped
+    depends_on:
+      - hadoop-namenode
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      HDFS_CONF_dfs_replication: 1
+      SERVICE_PRECONDITION: hadoop-namenode:9870
+    ports:
+      - "9864:9864"
+    volumes:
+      - hadoop-datanode:/hadoop/dfs/data
+    networks:
+      - egx-network
+
+  hadoop-resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    pull_policy: never
+    container_name: egx-hadoop-resourcemanager
+    hostname: hadoop-resourcemanager
+    restart: unless-stopped
+    depends_on:
+      - hadoop-namenode
+      - hadoop-datanode
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      YARN_CONF_yarn_resourcemanager_hostname: hadoop-resourcemanager
+      YARN_CONF_yarn_nodemanager_aux-services: mapreduce_shuffle
+      SERVICE_PRECONDITION: hadoop-namenode:9870 hadoop-datanode:9864
+    ports:
+      - "8088:8088"
+    networks:
+      - egx-network
+
+  hadoop-nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    pull_policy: never
+    container_name: egx-hadoop-nodemanager
+    hostname: hadoop-nodemanager
+    restart: unless-stopped
+    depends_on:
+      - hadoop-resourcemanager
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      YARN_CONF_yarn_resourcemanager_hostname: hadoop-resourcemanager
+      YARN_CONF_yarn_nodemanager_aux-services: mapreduce_shuffle
+      SERVICE_PRECONDITION: hadoop-resourcemanager:8088
+    networks:
+      - egx-network
+
+  hadoop-historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    pull_policy: never
+    container_name: egx-hadoop-historyserver
+    hostname: hadoop-historyserver
+    restart: unless-stopped
+    depends_on:
+      - hadoop-namenode
+      - hadoop-datanode
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      SERVICE_PRECONDITION: hadoop-namenode:9870 hadoop-datanode:9864
+    ports:
+      - "8188:8188"
+    volumes:
+      - hadoop-historyserver:/hadoop/yarn/timeline
+    networks:
+      - egx-network
+
+volumes:
+  hadoop-namenode:
+  hadoop-datanode:
+  hadoop-historyserver:

@@ -1,0 +1,53 @@
+services:
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    pull_policy: never
+    container_name: egx-hive-metastore-postgresql
+    hostname: hive-metastore-postgresql
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    volumes:
+      - hive-metastore-postgresql:/var/lib/postgresql/data
+    networks:
+      - egx-network
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    pull_policy: never
+    container_name: egx-hive-metastore
+    hostname: hive-metastore
+    restart: unless-stopped
+    depends_on:
+      - hive-metastore-postgresql
+      - hadoop-namenode
+      - hadoop-datanode
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      SERVICE_PRECONDITION: hadoop-namenode:9870 hadoop-datanode:9864 hive-metastore-postgresql:5432
+    ports:
+      - "9083:9083"
+    networks:
+      - egx-network
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    pull_policy: never
+    container_name: egx-hive-server
+    hostname: hive-server
+    restart: unless-stopped
+    depends_on:
+      - hive-metastore
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://hadoop-namenode:8020
+      HIVE_SITE_CONF_hive_metastore_uris: thrift://hive-metastore:9083
+      SERVICE_PRECONDITION: hive-metastore:9083
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    networks:
+      - egx-network
+
+volumes:
+  hive-metastore-postgresql:

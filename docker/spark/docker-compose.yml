@@ -12,7 +12,7 @@ services:
       - "7077:7077"
       - "8080:8080"
     volumes:
-      - spark-apps:/opt/spark/apps
+      - ../../:/opt/spark/apps
       - ../../config/hadoop:/opt/spark/conf/hadoop
     networks:
       - egx-network
@@ -33,10 +33,7 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - spark-apps:/opt/spark/apps
+      - ../../:/opt/spark/apps
       - ../../config/hadoop:/opt/spark/conf/hadoop
     networks:
       - egx-network
-
-volumes:
-  spark-apps:

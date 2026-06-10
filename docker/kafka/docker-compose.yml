@@ -40,6 +40,20 @@ services:
     networks:
       - egx-network
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: egx-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: egx-kafka-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    networks:
+      - egx-network
+
 volumes:
   zookeeper-data:
   zookeeper-log:

@@ -89,6 +89,7 @@ def add_all_indicators(df: DataFrame) -> DataFrame:
     """Convenience function: adds SMA-20, SMA-50, RSI-14, MACD, and Bollinger Bands."""
     df = add_sma(df, period=20)
     df = add_sma(df, period=50)
+    df = add_ema(df, period=20)
     df = add_rsi(df, period=14)
     df = add_macd(df)
     df = add_bollinger(df)

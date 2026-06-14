@@ -1,25 +1,29 @@
 services:
   spark-master:
-    image: apache/spark:3.4.1
-    pull_policy: never
+    build: .
     container_name: egx-spark-master
     hostname: spark-master
     restart: unless-stopped
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     environment:
       HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+      SPARK_MASTER_URL: spark://spark-master:7077
+      HIVE_METASTORE_URI: thrift://hive-metastore:9083
+      HDFS_NAMENODE: hdfs://hadoop-namenode:8020
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     ports:
       - "7077:7077"
       - "8080:8080"
     volumes:
       - ../../:/opt/spark/apps
+      - ../../:/opt/egx-pipeline
       - ../../config/hadoop:/opt/spark/conf/hadoop
+      - ../../config/hadoop/hive-site.xml:/opt/spark/conf/hive-site.xml
     networks:
       - egx-network
 
   spark-worker:
-    image: apache/spark:3.4.1
-    pull_policy: never
+    build: .
     container_name: egx-spark-worker
     hostname: spark-worker
     restart: unless-stopped
@@ -30,10 +34,15 @@ services:
       SPARK_WORKER_MEMORY: 2G
       SPARK_WORKER_CORES: 2
       HADOOP_CONF_DIR: /opt/spark/conf/hadoop
+      HIVE_METASTORE_URI: thrift://hive-metastore:9083
+      HDFS_NAMENODE: hdfs://hadoop-namenode:8020
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     ports:
       - "8081:8081"
     volumes:
       - ../../:/opt/spark/apps
+      - ../../:/opt/egx-pipeline
       - ../../config/hadoop:/opt/spark/conf/hadoop
+      - ../../config/hadoop/hive-site.xml:/opt/spark/conf/hive-site.xml
     networks:
       - egx-network

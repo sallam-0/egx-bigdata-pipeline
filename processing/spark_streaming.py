@@ -28,7 +28,7 @@ TICK_SCHEMA = StructType([
 
 
 def run():
-    spark = get_spark_session("EGX-Streaming")
+    spark = get_spark_session("EGX-Streaming", include_kafka=True)
 
     raw_stream = (
         spark.readStream
@@ -36,6 +36,7 @@ def run():
         .option("kafka.bootstrap.servers", KAFKA_BROKER)
         .option("subscribePattern", f"{KAFKA_TOPIC_PREFIX}\\..*")
         .option("startingOffsets", "latest")
+        .option("kafka.group.id", "egx-spark-consumer")
         .option("failOnDataLoss", "false")
         .load()
     )

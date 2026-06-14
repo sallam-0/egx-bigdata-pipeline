@@ -6,6 +6,7 @@ Called via SparkSubmitOperator in etl_dag.py.
 
 import logging
 from datetime import date
+from typing import Optional
 
 from pyspark.sql import functions as F
 
@@ -18,14 +19,14 @@ HDFS_URL = os.getenv("HDFS_URL", "hdfs://hadoop-namenode:8020")
 log = logging.getLogger(__name__)
 
 
-def run(run_date: date | None = None):
+def run(run_date: Optional[date] = None):
     run_date = run_date or date.today()
-    partition = run_date.strftime("%Y/%m/%d")
+    partition = run_date.strftime("%Y-%m-%d")
 
     spark = get_spark_session("EGX-BatchETL")
 
     # ── Step 1: read raw ─────────────────────────────────────
-    raw_path = f"{HDFS_URL}{RAW_OHLCV}/date={partition}"
+    raw_path = f"{HDFS_URL}{RAW_OHLCV}/date_partition={partition}"
     log.info("Reading raw data from %s", raw_path)
     raw = spark.read.parquet(raw_path)
 
@@ -44,7 +45,7 @@ def run(run_date: date | None = None):
         .dropDuplicates(["symbol", "date"])
     )
 
-    staging_path = f"{HDFS_URL}{STAGING_OHLCV}/date={partition}"
+    staging_path = f"{HDFS_URL}{STAGING_OHLCV}/date_partition={partition}"
     staging.write.mode("overwrite").parquet(staging_path)
     log.info("Staging written: %d rows", staging.count())
 

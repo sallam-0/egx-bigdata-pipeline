@@ -57,6 +57,7 @@ def run(run_date: Optional[date] = None):
     enriched = add_all_indicators(all_staging)
 
     # ── Step 5: write curated partitioned by symbol ──────────
+    enriched = enriched.withColumn("ingested_at", F.col("ingested_at").cast("string"))
     curated_path = f"{HDFS_URL}{CURATED_OHLCV}"
     (
         enriched

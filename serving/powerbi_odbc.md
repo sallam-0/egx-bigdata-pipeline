@@ -43,4 +43,8 @@ a Data Gateway; for local/desktop use, DirectQuery is sufficient.
 ## Troubleshooting
 - **"Cannot connect"**: Ensure HiveServer2 is running (`hive --service hiveserver2`).
 - **"No tables found"**: Run `MSCK REPAIR TABLE` in Hive to register partitions.
+- **ODBC: ERROR [HY000] [Cloudera][Hardy] (35) ... MetaException(message:java.lang.NullPointerException)**: This is a known bug with the Simba ODBC driver when browsing partitioned tables or `TIMESTAMP`/`DATE` columns in the Power BI Navigator. To fix this:
+  1. Instead of selecting the table from the Navigator, click **Advanced options** when setting up the ODBC connection.
+  2. Enter a native SQL query: `SELECT * FROM egx_db.curated_ohlcv` (or whichever table/view you need).
+  3. Alternatively, make sure you have run `MSCK REPAIR TABLE egx_db.curated_ohlcv;` to ensure no partition metadata is missing.
 - **Slow queries**: Add `LIMIT` clauses to views used in large visuals.

@@ -53,9 +53,10 @@ def write_to_hdfs(df: pd.DataFrame, run_date: date) -> None:
     # Create HDFS directory via docker exec
     subprocess.run(["docker", "exec", "egx-hadoop-namenode", "hdfs", "dfs", "-mkdir", "-p", hdfs_dir], check=True)
     
-    # Upload to HDFS by streaming the local file
-    with open(local_path, "rb") as f:
-        subprocess.run(["docker", "exec", "-i", "egx-hadoop-namenode", "hdfs", "dfs", "-put", "-f", "-", f"{hdfs_dir}/data.parquet"], stdin=f, check=True)
+    # Upload to HDFS (Avoid docker exec stdin streaming which causes lease exceptions)
+    subprocess.run(["docker", "cp", local_path, "egx-hadoop-namenode:/tmp/data_tmp.parquet"], check=True)
+    subprocess.run(["docker", "exec", "egx-hadoop-namenode", "hdfs", "dfs", "-put", "-f", "/tmp/data_tmp.parquet", f"{hdfs_dir}/data.parquet"], check=True)
+    subprocess.run(["docker", "exec", "egx-hadoop-namenode", "rm", "/tmp/data_tmp.parquet"], check=True)
         
     log.info("Wrote %d rows to HDFS %s/data.parquet", len(df), hdfs_dir)
 

@@ -48,3 +48,28 @@ STORED AS PARQUET
 LOCATION 'hdfs://hadoop-namenode:8020/data/curated/egx/ohlcv';
 
 MSCK REPAIR TABLE egx_db.curated_ohlcv;
+
+
+-- ── Raw Ticks (Spark Structured Streaming output) ──────────────────────────
+-- NOTE: `symbol` and `date_partition` are NOT in the column list.
+-- Spark's .partitionBy("date_partition", "symbol") extracts them from the
+-- parquet file bodies and writes them as directory names:
+--   /data/raw/egx/ticks/date_partition=2024-01-15/symbol=COMI.CA/
+-- Hive re-injects them as virtual partition columns at query time.
+CREATE EXTERNAL TABLE IF NOT EXISTS raw_ticks (
+    `timestamp`  STRING  COMMENT 'ISO-8601 UTC tick timestamp from scraper',
+    price        DOUBLE  COMMENT 'last traded price',
+    volume       BIGINT  COMMENT 'last traded volume',
+    open         DOUBLE  COMMENT 'day open price',
+    high         DOUBLE  COMMENT 'day high price',
+    low          DOUBLE  COMMENT 'day low price',
+    prev_close   DOUBLE  COMMENT 'previous close price',
+    event_time   TIMESTAMP  COMMENT 'parsed event_time from Spark'
+)
+COMMENT 'Raw tick data from Kafka via Spark Structured Streaming (60s cadence)'
+PARTITIONED BY (date_partition STRING, symbol STRING)
+STORED AS PARQUET
+LOCATION 'hdfs://hadoop-namenode:8020/data/raw/egx/ticks';
+
+-- Discover all date_partition/symbol directories Spark has written
+MSCK REPAIR TABLE egx_db.raw_ticks;

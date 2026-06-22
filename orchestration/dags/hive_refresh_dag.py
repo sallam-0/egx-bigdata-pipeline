@@ -39,6 +39,19 @@ with DAG(
         poke_interval=60,
     )
 
+    # Repair raw_ticks partitions — catches any new date_partition/symbol
+    # directories Spark Streaming wrote during the trading day.
+    repair_raw_ticks = BashOperator(
+        task_id="repair_raw_ticks",
+        bash_command=(
+            f"{SPARK_EXEC} bash -c \""
+            "beeline -u 'jdbc:hive2://hive-server:10000' "
+            "-e 'MSCK REPAIR TABLE egx_db.raw_ticks;' "
+            "--silent=true"
+            "\""
+        ),
+    )
+
     refresh_views = BashOperator(
         task_id="refresh_hive_views",
         bash_command=(
@@ -48,4 +61,5 @@ with DAG(
         ),
     )
 
-    wait_for_etl >> refresh_views
+    wait_for_etl >> repair_raw_ticks >> refresh_views
+

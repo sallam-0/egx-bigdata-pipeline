@@ -1,28 +1,43 @@
-# EGX Big Data Pipeline 🇪🇬📈
+<h1 align="center">EGX Big Data Pipeline 🇪🇬📈</h1>
 
-A production-grade, end-to-end big data pipeline for the **Egyptian Exchange (EGX)** stock market. The pipeline ingests daily OHLCV data and real-time tick prices, processes them with Apache Spark, computes technical indicators, and serves the enriched data to Power BI dashboards via a Hive-on-HDFS data lake.
+<p align="center">
+  <strong>A production-grade, end-to-end big data pipeline for the Egyptian Exchange (EGX) stock market.</strong><br/>
+  Batch &amp; real-time ingestion · Apache Spark ETL · Technical indicators · Hive data lake · Power BI DirectQuery dashboards
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Spark-3.4.1-E25A1C?logo=apachespark&logoColor=white" alt="Spark"/>
+  <img src="https://img.shields.io/badge/Kafka-7.x-231F20?logo=apachekafka&logoColor=white" alt="Kafka"/>
+  <img src="https://img.shields.io/badge/Hadoop_HDFS-3.x-66CCFF?logo=apachehadoop&logoColor=white" alt="HDFS"/>
+  <img src="https://img.shields.io/badge/Hive-2.x-FDEE21?logo=apachehive&logoColor=black" alt="Hive"/>
+  <img src="https://img.shields.io/badge/Airflow-2.x-017CEE?logo=apacheairflow&logoColor=white" alt="Airflow"/>
+  <img src="https://img.shields.io/badge/Power_BI-DirectQuery-F2C811?logo=powerbi&logoColor=black" alt="Power BI"/>
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker"/>
+</p>
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Technology Stack](#technology-stack)
-3. [Repository Structure](#repository-structure)
-4. [Module Deep-Dives](#module-deep-dives)
-   - [Ingestion](#1-ingestion)
-   - [Storage (HDFS)](#2-storage-hdfs)
-   - [Processing (Spark)](#3-processing-spark)
-   - [Orchestration (Airflow)](#4-orchestration-airflow)
-   - [Serving (Hive + Power BI)](#5-serving-hive--power-bi)
-5. [Infrastructure (Docker)](#infrastructure-docker)
-6. [Data Flow End-to-End](#data-flow-end-to-end)
-7. [HDFS Data Lake Layout](#hdfs-data-lake-layout)
-8. [Airflow DAG Schedule](#airflow-dag-schedule)
-9. [Hive Schema Reference](#hive-schema-reference)
-10. [Technical Indicators Reference](#technical-indicators-reference)
-11. [Getting Started](#getting-started)
-12. [Power BI Connection](#power-bi-connection)
+- [Architecture Overview](#architecture-overview)
+- [Dashboard Preview](#dashboard-preview)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+- [Module Deep-Dives](#module-deep-dives)
+  - [Ingestion](#1-ingestion)
+  - [Storage (HDFS)](#2-storage-hdfs)
+  - [Processing (Spark)](#3-processing-spark)
+  - [Orchestration (Airflow)](#4-orchestration-airflow)
+  - [Serving (Hive + Power BI)](#5-serving-hive--power-bi)
+- [Infrastructure (Docker)](#infrastructure-docker)
+- [Data Flow End-to-End](#data-flow-end-to-end)
+- [HDFS Data Lake Layout](#hdfs-data-lake-layout)
+- [Airflow DAG Schedule](#airflow-dag-schedule)
+- [Hive Schema Reference](#hive-schema-reference)
+- [Technical Indicators Reference](#technical-indicators-reference)
+- [Getting Started](#getting-started)
+- [Power BI Connection](#power-bi-connection)
+- [Power BI Dashboard Docs](#power-bi-dashboard-documentation)
 
 ---
 
@@ -30,27 +45,44 @@ A production-grade, end-to-end big data pipeline for the **Egyptian Exchange (EG
 
 The pipeline follows a **Lambda Architecture** pattern with both batch and streaming ingestion paths that converge in a unified HDFS data lake.
 
-```
-┌─────────────┐     ┌───────────────────┐     ┌──────────────────────────────────────────┐
-│             │────▶│  Batch Ingest     │────▶│                                         │
-│  yfinance   │     │  (daily OHLCV)    │     │           HDFS Data Lake                 │
-│    API      │     └───────────────────┘     │                                          │
-│             │                               │  Raw Zone  →  Staging Zone  →  Curated   │
-│  (EGX ticks)│     ┌───────────────────┐     │                                          │
-│             │────▶│ Real-time Scraper │─┐  └──────────────────────────────────────────┘
-└─────────────┘     │  (every 60s)      │  │             │                   │
-                    └───────────────────┘  │  ┌──────────▼──────┐   ┌────────▼──────────┐
-                                           │  │   Spark Batch   │   │ Spark Streaming   │
-                                           │  │   ETL + Indic.  │   │  Consumer         │
-                                    ┌──────┤  └─────────────────┘   └───────────────────┘
-                                    ▼      │
-                             ┌────────────┐│   ┌─────────────────┐   ┌────────────────┐
-                             │   Kafka    ││   │  Hive Metastore │   │    Power BI    │
-                             │ egx.*      │└──▶│  + Views        │──▶│  DirectQuery  │
-                             └────────────┘    └─────────────────┘   └────────────────┘
-                                    │
-                               Airflow orchestrates everything
-```
+<p align="center">
+  <img src="docs/images/egx_architecture_diagram.png" alt="EGX Pipeline Architecture" width="800"/>
+</p>
+
+---
+
+## Dashboard Preview
+
+The Power BI report consists of four interactive pages connected via DirectQuery to the Hive data lake.
+
+> 📖 For detailed documentation of every visual, measure, and table, see the **[`powerbi/`](powerbi/)** folder.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/images/market_overview.png" alt="Market Overview" width="100%"/><br/>
+      <strong>Market Overview</strong><br/>
+      <sub>KPIs · Volume ranking · Daily movers · RSI distribution</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/images/symbol_detail.png" alt="Symbol Detail" width="100%"/><br/>
+      <strong>Symbol Detail</strong><br/>
+      <sub>Bollinger Bands · SMA/EMA · MACD · RSI · Volume</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/images/signals&risk.png" alt="Signals & Risk" width="100%"/><br/>
+      <strong>Signals & Risk</strong><br/>
+      <sub>RSI screening · Bollinger width · Risk scatter · Gauge</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/images/live_ticks.png" alt="Live Ticks" width="100%"/><br/>
+      <strong>Live Ticks</strong><br/>
+      <sub>Market status · Intraday chart · Live ticker table</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -75,6 +107,17 @@ The pipeline follows a **Lambda Architecture** pattern with both batch and strea
 
 ```
 egx-bigdata-pipeline/
+│
+├── docs/
+│   └── images/                     # Architecture diagram & dashboard screenshots
+│
+├── powerbi/                        # 📊 Power BI dashboard documentation
+│   ├── README.md                   # Index: pages, data sources, navigation
+│   ├── market_overview.md          # Page 1: Market overview visuals & measures
+│   ├── symbol_detail.md            # Page 2: Single-stock technical analysis
+│   ├── signals_and_risk.md         # Page 3: RSI screening & risk assessment
+│   ├── live_ticks.md               # Page 4: Real-time tick monitoring
+│   └── measures.md                 # Complete DAX measures catalogue
 │
 ├── docker/                         # Container infrastructure
 │   ├── docker-compose.yml          # Root compose: includes all sub-stacks
@@ -117,7 +160,7 @@ egx-bigdata-pipeline/
 │   └── powerbi_odbc.md             # Guide: connecting Power BI via Simba ODBC
 │
 └── config/
-    └── hadoop/                     # Hadoop + Hive XML config files (core-site, hive-site, etc.)
+    └── hadoop/                     # Hadoop + Hive XML config files
 ```
 
 ---
@@ -126,7 +169,7 @@ egx-bigdata-pipeline/
 
 ### 1. Ingestion
 
-The ingestion layer has two independent paths that run concurrently:
+The ingestion layer has two independent paths that run concurrently.
 
 #### 1a. Daily Batch Ingestion — `ingestion/batch_ingest.py`
 
@@ -157,24 +200,23 @@ Fetches historical OHLCV data for all tracked EGX tickers every trading day (Sun
 
 #### 1b. Real-Time Tick Scraper — `ingestion/scraper.py`
 
-Polls yfinance every **60 seconds** and publishes live tick data to Apache Kafka. This provides the real-time path for near-live dashboards.
+Polls yfinance every **60 seconds** and publishes live tick data to Apache Kafka.
 
 **How it works:**
-1. Loads the ticker list
-2. Creates a `KafkaTickProducer` instance
-3. Schedules `scrape_all()` to run every `SCRAPE_INTERVAL_SECONDS` (60s) using APScheduler
-4. For each ticker, calls `yf.Ticker(symbol).fast_info` to get the latest price, volume, open, high, low, and previous close
-5. Publishes each tick as a JSON message to its dedicated Kafka topic
+1. Creates a `KafkaTickProducer` instance
+2. Schedules `scrape_all()` every `SCRAPE_INTERVAL_SECONDS` (60s) via APScheduler
+3. For each ticker, calls `yf.Ticker(symbol).fast_info` for latest price, volume, open, high, low, and previous close
+4. Publishes each tick as a JSON message to its dedicated Kafka topic
 
-**Retry Logic:** Each ticker fetch retries up to 3 times with a 5-second delay between attempts, then logs an error and skips that tick for the current cycle.
+**Retry logic:** Each ticker fetch retries up to 3 times with a 5-second delay, then logs an error and skips.
 
 #### 1c. Kafka Producer — `ingestion/producer.py`
 
-The `KafkaTickProducer` class wraps the `kafka-python` producer with:
+The `KafkaTickProducer` wraps `kafka-python` with:
 - **Delivery guarantee:** `acks="all"` (waits for all replicas)
 - **Serialisation:** JSON-encoded UTF-8
-- **Topic naming:** `egx.<symbol>` (dots in symbols replaced with underscores). For example, `COMI.CA` → topic `egx.comi_ca`
-- **Retries:** 3 automatic retries on transient Kafka errors
+- **Topic naming:** `egx.<symbol>` (dots replaced with underscores, e.g. `COMI.CA` → `egx.comi_ca`)
+- **Retries:** 3 automatic retries on transient errors
 
 ---
 
@@ -182,33 +224,22 @@ The `KafkaTickProducer` class wraps the `kafka-python` producer with:
 
 #### Path Constants — `storage/hdfs_paths.py`
 
-All HDFS paths are centralised in a single module to prevent hardcoded path duplication across job scripts.
+All HDFS paths are centralised to prevent hardcoded duplication across scripts.
 
 ```
 /data/
 ├── raw/egx/
-│   ├── ohlcv/           ← Daily OHLCV Parquet files (date-partitioned)
-│   │   └── date_partition=2026-06-14/
-│   │       └── data.parquet
-│   └── ticks/           ← Real-time tick Parquet files (Spark Streaming output)
-│       └── date_partition=.../
-│           └── symbol=.../
-│
+│   ├── ohlcv/           ← Daily OHLCV Parquet (date-partitioned)
+│   └── ticks/           ← Real-time tick Parquet (Spark Streaming)
 ├── staging/egx/
 │   └── ohlcv/           ← Cleaned, typed, de-duplicated OHLCV
-│       └── date_partition=.../
-│
 └── curated/egx/
     └── ohlcv/           ← OHLCV + all technical indicators (symbol-partitioned)
-        ├── symbol=COMI.CA/
-        │   └── part-00000-xxx.snappy.parquet
-        ├── symbol=FWRY.CA/
-        └── ...
 ```
 
 #### Initialisation — `storage/init_hdfs.sh`
 
-A one-time bootstrap script that creates the entire HDFS directory tree and sets permissions. Run once after Hadoop starts for the first time:
+One-time bootstrap script that creates the HDFS directory tree and sets permissions:
 
 ```bash
 docker exec egx-hadoop-namenode bash /opt/egx-pipeline/storage/init_hdfs.sh
@@ -220,136 +251,100 @@ docker exec egx-hadoop-namenode bash /opt/egx-pipeline/storage/init_hdfs.sh
 
 #### 3a. SparkSession Factory — `processing/spark_config.py`
 
-Centralised factory function `get_spark_session(app_name, include_kafka=False)` that configures Spark for this cluster:
-
-- Connects to the Spark master at `spark://egx-spark-master:7077`
-- Enables **Hive support** pointing at the Hive Metastore (`thrift://egx-hive-metastore:9083`)
-- Sets the HDFS warehouse directory
-- Configures **KryoSerializer** for performance
-- Fixes IPv4 stack issues for Docker networking
-- Optionally loads the **Kafka connector JAR** for streaming jobs
-
-The factory also resolves Docker service hostnames to IP addresses via DNS to handle network edge cases inside containers.
+Centralised `get_spark_session(app_name, include_kafka=False)` that configures:
+- Spark master at `spark://egx-spark-master:7077`
+- **Hive support** via Metastore (`thrift://egx-hive-metastore:9083`)
+- **KryoSerializer** for performance
+- Optional **Kafka connector JAR** for streaming jobs
 
 #### 3b. Batch ETL — `processing/batch_etl.py`
 
-The daily ETL job transforms raw OHLCV data through three HDFS zones:
+Transforms raw OHLCV data through three HDFS zones:
 
 ```
-Raw Zone → (Step 2) → Staging Zone → (Step 4) → Curated Zone
+Raw Zone → Staging Zone → Curated Zone
 ```
-
-**Step-by-step:**
 
 | Step | Description |
 |---|---|
-| 1. Read raw | Reads today's Parquet from `HDFS_URL/data/raw/egx/ohlcv/date_partition=<today>` |
-| 2. Clean → Staging | Drops nulls in key columns, filters out invalid prices/volumes, casts `date` type, rounds OHLCV columns to 4dp, de-duplicates on `(symbol, date)`, adds `ingested_at` timestamp |
-| 3. Read all staging | Reads the full historical staging dataset (all date partitions) for rolling-window indicator calculation |
-| 4. Compute indicators | Calls `add_all_indicators()` from `indicators.py` — pure PySpark window functions |
-| 5. Write curated | Casts `ingested_at` to STRING (Power BI ODBC compatibility), writes Parquet **partitioned by `symbol`** |
-
-> **Why cast `ingested_at` to STRING before writing curated?**
-> The Simba Hive ODBC driver (used by Power BI) throws a `NullPointerException` when the Hive Metastore reports a `TIMESTAMP` column without column comments. The column is stored as STRING in curated parquet and declared as STRING in the Hive DDL — Power BI reads it correctly as a sortable text date.
+| 1. Read raw | Reads today's Parquet from the raw zone |
+| 2. Clean → Staging | Drop nulls, filter invalid prices, cast types, de-duplicate on `(symbol, date)` |
+| 3. Read all staging | Full historical dataset for rolling-window calculations |
+| 4. Compute indicators | `add_all_indicators()` — pure PySpark window functions |
+| 5. Write curated | Parquet partitioned by `symbol`, `ingested_at` cast to STRING for ODBC compatibility |
 
 #### 3c. Technical Indicators — `processing/indicators.py`
 
-A pure **PySpark window-function** library — no Pandas UDFs, no Python loops on executors. Every indicator runs distributed on the cluster.
+Pure **PySpark window-function** library — no Pandas UDFs, no Python loops on executors.
 
 | Function | Indicator | Parameters |
 |---|---|---|
-| `add_sma(df, period)` | Simple Moving Average | period=20, period=50 |
-| `add_ema(df, period)` | Exponential Moving Average (approximation) | period=20 |
-| `add_rsi(df, period)` | Relative Strength Index | period=14 |
-| `add_macd(df, fast, slow, signal)` | MACD line, signal line, histogram | 12/26/9 |
-| `add_bollinger(df, period, std_dev)` | Bollinger Bands (upper/mid/lower) | 20 periods, 2σ |
+| `add_sma(df, period)` | Simple Moving Average | 20, 50 |
+| `add_ema(df, period)` | Exponential Moving Average | 20 |
+| `add_rsi(df, period)` | Relative Strength Index | 14 |
+| `add_macd(df, fast, slow, signal)` | MACD line, signal, histogram | 12/26/9 |
+| `add_bollinger(df, period, std_dev)` | Bollinger Bands (upper/mid/lower) | 20, 2σ |
 | `add_all_indicators(df)` | Runs all of the above | — |
 
-All indicators use `Window.partitionBy("symbol").orderBy("date")` so each stock's history is computed independently and correctly.
+All indicators use `Window.partitionBy("symbol").orderBy("date")`.
 
 #### 3d. Spark Structured Streaming — `processing/spark_streaming.py`
 
-Consumes all EGX Kafka topics in real time and writes micro-batches to HDFS.
-
-- **Topic pattern:** subscribes to `egx\..*` (all EGX ticker topics via regex)
-- **Deserialization:** parses JSON bytes using the `TICK_SCHEMA` StructType
-- **Output:** Parquet files in `HDFS/data/raw/egx/ticks/`, partitioned by `date_partition` and `symbol`
+Consumes all EGX Kafka topics in real time:
+- **Topic pattern:** `egx\..*` (regex subscription)
+- **Output:** Parquet to `HDFS/data/raw/egx/ticks/`, partitioned by `date_partition` and `symbol`
+- **Trigger:** Micro-batch every **30 seconds**
 - **Checkpoint:** `HDFS/checkpoints/streaming/` for exactly-once semantics
-- **Trigger:** micro-batch every **30 seconds**
 
 ---
 
 ### 4. Orchestration (Airflow)
 
-All four DAGs run inside the Airflow container but execute their Python/Hive tasks by calling `docker exec egx-spark-master` — this approach gives Spark tasks full access to HDFS, Hive Metastore, and Kafka without adding complexity to the Airflow container image.
+All DAGs execute tasks via `docker exec egx-spark-master` for full access to HDFS, Hive, and Kafka.
 
-#### DAG 1: `egx_ingestion` — `orchestration/dags/ingestion_dag.py`
+#### DAG 1: `egx_ingestion`
 
 | | |
 |---|---|
-| **Schedule** | `45 13 * * 0-4` — 13:45 UTC (15:45 Cairo), Sunday–Thursday |
-| **Purpose** | Fetch today's OHLCV data from yfinance and write to HDFS raw zone |
+| **Schedule** | `45 13 * * 0-4` — 15:45 Cairo, Sun–Thu |
+| **Purpose** | Fetch OHLCV → HDFS raw zone → repair Hive partitions |
 
-**Task graph:**
 ```
 wait_for_market_close → run_batch_ingest → repair_hive_partitions
 ```
 
-- `wait_for_market_close`: Log marker confirming market has closed
-- `run_batch_ingest`: Runs `python -m ingestion.batch_ingest` to fetch and write Parquet
-- `repair_hive_partitions`: Runs `MSCK REPAIR TABLE egx_db.raw_ohlcv` so Hive registers the new partition
-
----
-
-#### DAG 2: `egx_etl` — `orchestration/dags/etl_dag.py`
+#### DAG 2: `egx_etl`
 
 | | |
 |---|---|
-| **Schedule** | `15 14 * * 0-4` — 14:15 UTC, 30 minutes after ingestion starts |
-| **Purpose** | Run PySpark ETL to transform raw → staging → curated with indicators |
+| **Schedule** | `15 14 * * 0-4` — 16:15 Cairo, 30 min after ingestion |
+| **Purpose** | Spark ETL: raw → staging → curated with indicators |
 
-**Task graph:**
 ```
 wait_for_ingestion → run_spark_etl → repair_curated_partitions
 ```
 
-- `wait_for_ingestion`: `ExternalTaskSensor` waits for `egx_ingestion.repair_hive_partitions` to complete
-- `run_spark_etl`: Runs `python3 -m processing.batch_etl` inside the Spark master container
-- `repair_curated_partitions`: Runs `MSCK REPAIR TABLE egx_db.curated_ohlcv` to register new symbol partitions
-
----
-
-#### DAG 3: `egx_hive_refresh` — `orchestration/dags/hive_refresh_dag.py`
+#### DAG 3: `egx_hive_refresh`
 
 | | |
 |---|---|
-| **Schedule** | `30 15 * * 0-4` — 15:30 UTC, after ETL is expected to finish |
-| **Purpose** | Re-create all Hive SQL views so Power BI DirectQuery picks up the latest schema |
+| **Schedule** | `30 15 * * 0-4` — 17:30 Cairo, after ETL |
+| **Purpose** | Re-create Hive SQL views for Power BI |
 
-**Task graph:**
 ```
 wait_for_etl → refresh_hive_views
 ```
 
-- `wait_for_etl`: `ExternalTaskSensor` waits for `egx_etl.repair_curated_partitions`
-- `refresh_hive_views`: Executes `serving/hive_views.sql` via `orchestration/run_sql.py`
-
----
-
-#### DAG 4: `egx_streaming` — `orchestration/dags/streaming_dag.py`
+#### DAG 4: `egx_streaming`
 
 | | |
 |---|---|
-| **Schedule** | `@once` — started once and runs continuously |
-| **Purpose** | Launch the real-time tick scraper and Spark Streaming consumer |
+| **Schedule** | `@once` — runs continuously |
+| **Purpose** | Launch tick scraper + Spark Streaming consumer |
 
-**Task graph:**
 ```
 run_consumer → run_scraper
 ```
-
-- `run_consumer`: Starts `spark_streaming.py` as a background process inside `egx-spark-master`
-- `run_scraper`: Starts `ingestion.scraper` which polls yfinance every 60 seconds
 
 ---
 
@@ -357,96 +352,55 @@ run_consumer → run_scraper
 
 #### 5a. Hive External Tables — `serving/hive_tables.sql`
 
-Registers two **external tables** (Hive reads the Parquet files but never moves or copies them):
+Two **external tables** (Hive reads Parquet directly from HDFS):
 
-**`raw_ohlcv`** — partitioned by `date_partition` (date string)
-```sql
-CREATE EXTERNAL TABLE IF NOT EXISTS raw_ohlcv (
-    `date` DATE, symbol STRING, open DOUBLE,
-    high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT
-)
-PARTITIONED BY (date_partition STRING)
-STORED AS PARQUET
-LOCATION 'hdfs://hadoop-namenode:8020/data/raw/egx/ohlcv';
-```
-
-**`curated_ohlcv`** — partitioned by `symbol` (one directory per stock)
-```sql
-CREATE EXTERNAL TABLE IF NOT EXISTS curated_ohlcv (
-    `date` DATE COMMENT 'date',
-    open DOUBLE COMMENT 'open', ...,
-    ingested_at STRING COMMENT 'ingested_at'
-)
-COMMENT 'curated_ohlcv table'
-PARTITIONED BY (symbol STRING)
-STORED AS PARQUET
-LOCATION 'hdfs://hadoop-namenode:8020/data/curated/egx/ohlcv';
-```
-
-> **Why `COMMENT` on every column?** The Simba Hive ODBC driver crashes with a `NullPointerException` when browsing tables in Power BI's Navigator if any column is missing a `COMMENT` field in the Metastore. Adding comments on all columns fixes this.
+- **`raw_ohlcv`** — partitioned by `date_partition`
+- **`curated_ohlcv`** — partitioned by `symbol`, all columns with `COMMENT` to prevent Simba ODBC NPE
+- **`raw_ticks`** — partitioned by `date_partition` and `symbol`
 
 #### 5b. Hive Views — `serving/hive_views.sql`
 
-Pre-built analytical SQL views on top of `curated_ohlcv`:
-
-| View | Description | Key Columns |
-|---|---|---|
-| `v_daily_summary` | Full price + indicator snapshot per day per symbol | `symbol`, `date`, `open/high/low/close`, `daily_change_pct`, all indicators |
-| `v_weekly_rollup` | Weekly OHLCV aggregated from daily data | `symbol`, `week_start`, `week_open/close`, `week_high/low`, `week_volume` |
-| `v_top_movers` | Top 10 biggest movers on the latest trading day | `symbol`, `change_pct` |
-| `v_rsi_signals` | RSI signal classification per symbol per day | `symbol`, `rsi_14`, `rsi_signal` (overbought/oversold/neutral) |
-| `v_bollinger_squeeze` | Bollinger Band width — sorted to highlight squeeze | `symbol`, `band_width` |
-
-#### 5c. Power BI Connection
-
-Power BI connects via **DirectQuery** mode using the **Simba Hive ODBC Driver** (v2.6.26, 64-bit). DirectQuery means every report interaction runs a live SQL query against Hive — no stale import cache.
-
-**DSN configuration (`ODBC Data Sources (64-bit)`):**
-- Driver: `Simba Hive ODBC Driver`
-- DSN Name: `EGX_Hive`
-- Host: `localhost`
-- Port: `10000`
-- Database: `egx_db`
-- Authentication: No Authentication
+| View | Description |
+|---|---|
+| `v_daily_summary` | Full price + indicator snapshot per day per symbol |
+| `v_weekly_rollup` | Weekly OHLCV aggregated from daily data |
+| `v_top_movers` | Biggest movers on the latest trading day |
+| `v_rsi_signals` | RSI signal classification (overbought/oversold/neutral) |
+| `v_bollinger_squeeze` | Bollinger Band width — highlights volatility squeeze |
+| `v_latest_ticks` | Most recent tick per symbol (today only, with market status) |
+| `v_tick_history` | All intraday ticks for today (line chart data) |
 
 ---
 
 ## Infrastructure (Docker)
 
-All services are defined across five independent Docker Compose files, included by the root `docker/docker-compose.yml`. They all share the `egx-network` bridge network.
+All services run in Docker containers on the `egx-network` bridge network.
 
-### Launch everything:
+### Launch
+
 ```bash
 cd docker
 docker compose -f docker-compose.yml up -d
 ```
 
-### Services and ports:
+### Services & Ports
 
-| Service | Container | Port (Host→Container) | Purpose |
+| Service | Container | Port | Purpose |
 |---|---|---|---|
-| HDFS NameNode | `egx-hadoop-namenode` | `9870:9870` | HDFS Web UI |
-| HDFS DataNode | `egx-hadoop-datanode` | `9864:9864` | HDFS storage node |
-| YARN ResourceManager | `egx-hadoop-resourcemanager` | `8088:8088` | YARN Web UI |
-| Hive Metastore | `egx-hive-metastore` | `9083` (internal) | Thrift metastore |
-| HiveServer2 | `egx-hive-server` | `10000:10000` | JDBC/ODBC endpoint |
-| Kafka | `egx-kafka` | `9092:9092` | External Kafka |
-| Zookeeper | `egx-zookeeper` | `2181:2181` | Kafka coordination |
-| Kafka UI | `egx-kafka-ui` | `8080:8080` | Kafka topic browser |
-| Spark Master | `egx-spark-master` | `8081:8081` | Spark Web UI |
-| Spark Worker | `egx-spark-worker` | `8082:8081` | Spark worker |
-| Airflow Webserver | `egx-airflow-webserver` | `8082:8080` | Airflow UI |
+| HDFS NameNode | `egx-hadoop-namenode` | `9870` | HDFS Web UI |
+| HDFS DataNode | `egx-hadoop-datanode` | `9864` | Storage node |
+| YARN ResourceManager | `egx-hadoop-resourcemanager` | `8088` | YARN Web UI |
+| Hive Metastore | `egx-hive-metastore` | `9083` | Thrift metastore |
+| HiveServer2 | `egx-hive-server` | `10000` | JDBC/ODBC endpoint |
+| Kafka | `egx-kafka` | `9092` | Message broker |
+| Zookeeper | `egx-zookeeper` | `2181` | Kafka coordination |
+| Kafka UI | `egx-kafka-ui` | `8080` | Topic browser |
+| Spark Master | `egx-spark-master` | `8081` | Spark Web UI |
+| Spark Worker | `egx-spark-worker` | `8082` | Worker node |
+| Airflow Webserver | `egx-airflow-webserver` | `8082` | Airflow UI |
 | Airflow Scheduler | `egx-airflow-scheduler` | — | DAG scheduler |
-| Airflow Worker | `egx-airflow-worker` | — | Celery task executor |
-| Airflow Triggerer | `egx-airflow-triggerer` | — | Deferred task trigger |
-
-### Airflow configuration (`docker/.env`):
-```env
-AIRFLOW_UID=50000
-AIRFLOW_EXECUTOR=CeleryExecutor
-AIRFLOW_SECRET_KEY=egx-dev-secret-key
-AIRFLOW_FERNET_KEY=<generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
-```
+| Airflow Worker | `egx-airflow-worker` | — | Celery executor |
+| Airflow Triggerer | `egx-airflow-triggerer` | — | Deferred triggers |
 
 ---
 
@@ -459,34 +413,21 @@ yfinance API
 ingestion/batch_ingest.py
     ↓ writes Parquet
 HDFS: /data/raw/egx/ohlcv/date_partition=YYYY-MM-DD/
-    ↓ (MSCK REPAIR)
+    ↓ MSCK REPAIR
 Hive Metastore: raw_ohlcv table updated
-    ↓ (ExternalTaskSensor waits)
-processing/batch_etl.py (runs on egx-spark-master)
+    ↓ ExternalTaskSensor waits
+processing/batch_etl.py (Spark)
     ├── Reads raw partition
-    ├── Cleans → writes /data/staging/egx/ohlcv/
-    ├── Reads all staging history
+    ├── Cleans → /data/staging/egx/ohlcv/
     ├── Computes SMA-20, SMA-50, EMA-20, RSI-14, MACD(12,26,9), Bollinger(20)
     └── Writes /data/curated/egx/ohlcv/symbol=<TICKER>/
-    ↓ (MSCK REPAIR)
-Hive Metastore: curated_ohlcv partitions updated
+    ↓ MSCK REPAIR
+Hive views refreshed
     ↓
-serving/hive_views.sql refreshed
-    ↓
-Power BI DirectQuery via Simba ODBC on port 10000
-    ↓
-Live dashboard data
+Power BI DirectQuery via Simba ODBC (port 10000)
 
 [Continuous, every 60s]
-yfinance fast_info
-    ↓
-ingestion/scraper.py → ingestion/producer.py
-    ↓ JSON messages
-Kafka topics: egx.comi_ca, egx.fwry_ca, ...
-    ↓
-processing/spark_streaming.py (30s micro-batches)
-    ↓ Parquet
-HDFS: /data/raw/egx/ticks/date_partition=.../symbol=.../
+yfinance fast_info → Kafka (egx.*) → Spark Streaming → HDFS ticks
 ```
 
 ---
@@ -497,23 +438,23 @@ The pipeline uses a **medallion architecture** with three zones:
 
 | Zone | Path | Format | Partitioning | Content |
 |---|---|---|---|---|
-| **Raw** | `/data/raw/egx/ohlcv/` | Parquet | `date_partition` | As-is from yfinance, no transformation |
+| **Raw** | `/data/raw/egx/ohlcv/` | Parquet | `date_partition` | As-is from yfinance |
 | **Raw Ticks** | `/data/raw/egx/ticks/` | Parquet | `date_partition`, `symbol` | Real-time tick snapshots |
-| **Staging** | `/data/staging/egx/ohlcv/` | Parquet | `date_partition` | Cleaned, typed, de-duplicated OHLCV |
-| **Curated** | `/data/curated/egx/ohlcv/` | Parquet (Snappy) | `symbol` | Full OHLCV + all technical indicators |
+| **Staging** | `/data/staging/egx/ohlcv/` | Parquet | `date_partition` | Cleaned, typed, de-duplicated |
+| **Curated** | `/data/curated/egx/ohlcv/` | Snappy Parquet | `symbol` | OHLCV + all indicators |
 
 ---
 
 ## Airflow DAG Schedule
 
-| DAG ID | Cron | Trigger | Cairo Time |
+| DAG ID | Cron | Cairo Time | Description |
 |---|---|---|---|
-| `egx_ingestion` | `45 13 * * 0-4` | Daily, Sun–Thu | 15:45 (market close + 15 min) |
-| `egx_etl` | `15 14 * * 0-4` | Daily, Sun–Thu | 16:15 (30 min after ingestion) |
-| `egx_hive_refresh` | `30 15 * * 0-4` | Daily, Sun–Thu | 17:30 (after ETL finishes) |
-| `egx_streaming` | `@once` | Manual trigger | Runs continuously |
+| `egx_ingestion` | `45 13 * * 0-4` | 15:45 Sun–Thu | Batch ingest after market close |
+| `egx_etl` | `15 14 * * 0-4` | 16:15 Sun–Thu | Spark ETL pipeline |
+| `egx_hive_refresh` | `30 15 * * 0-4` | 17:30 Sun–Thu | Refresh Hive views |
+| `egx_streaming` | `@once` | Continuous | Real-time tick pipeline |
 
-**Default credentials:** `admin` / `admin` at `http://localhost:8082`
+**Airflow UI:** http://localhost:8082 — `admin` / `admin`
 
 ---
 
@@ -532,15 +473,15 @@ The pipeline uses a **medallion architecture** with three zones:
 | `sma_20` | DOUBLE | 20-day Simple Moving Average |
 | `sma_50` | DOUBLE | 50-day Simple Moving Average |
 | `ema_20` | DOUBLE | 20-day Exponential Moving Average |
-| `rsi_14` | DOUBLE | 14-day RSI (0–100 scale) |
+| `rsi_14` | DOUBLE | 14-day RSI (0–100) |
 | `macd_line` | DOUBLE | MACD line (EMA12 − EMA26) |
 | `macd_signal` | DOUBLE | 9-day EMA of MACD line |
-| `macd_hist` | DOUBLE | MACD histogram (line − signal) |
+| `macd_hist` | DOUBLE | MACD histogram |
 | `bb_upper` | DOUBLE | Bollinger Upper Band (SMA20 + 2σ) |
 | `bb_mid` | DOUBLE | Bollinger Middle Band (SMA20) |
 | `bb_lower` | DOUBLE | Bollinger Lower Band (SMA20 − 2σ) |
-| `ingested_at` | STRING | UTC timestamp when this row was processed |
-| `symbol` *(partition)* | STRING | EGX ticker symbol (e.g. `COMI.CA`) |
+| `ingested_at` | STRING | UTC processing timestamp |
+| `symbol` | STRING | EGX ticker (partition key) |
 
 ---
 
@@ -548,16 +489,15 @@ The pipeline uses a **medallion architecture** with three zones:
 
 | Indicator | Formula | Interpretation |
 |---|---|---|
-| **SMA-20** | Avg(close, last 20 days) | Short-term trend direction |
-| **SMA-50** | Avg(close, last 50 days) | Medium-term trend direction |
-| **EMA-20** | Weighted avg, recent prices weighted more | Faster-reacting trend signal |
-| **RSI-14** | 100 − 100/(1 + avg_gain/avg_loss) | >70 = overbought, <30 = oversold |
-| **MACD Line** | EMA(12) − EMA(26) | Momentum; cross above signal = bullish |
-| **MACD Signal** | EMA(9) of MACD line | Smoothed momentum reference |
-| **MACD Histogram** | MACD line − Signal | Visualises convergence/divergence |
-| **Bollinger Upper** | SMA(20) + 2 × StdDev(20) | Price above = potentially overbought |
-| **Bollinger Mid** | SMA(20) | Central value reference |
-| **Bollinger Lower** | SMA(20) − 2 × StdDev(20) | Price below = potentially oversold |
+| **SMA-20** | Avg(close, 20d) | Short-term trend |
+| **SMA-50** | Avg(close, 50d) | Medium-term trend |
+| **EMA-20** | Weighted avg, recent bias | Faster trend signal |
+| **RSI-14** | 100 − 100/(1 + gain/loss) | >70 overbought, <30 oversold |
+| **MACD Line** | EMA(12) − EMA(26) | Momentum direction |
+| **MACD Signal** | EMA(9) of MACD | Smoothed reference |
+| **MACD Histogram** | Line − Signal | Convergence/divergence |
+| **Bollinger Upper** | SMA(20) + 2σ | Overbought zone |
+| **Bollinger Lower** | SMA(20) − 2σ | Oversold zone |
 
 ---
 
@@ -565,12 +505,12 @@ The pipeline uses a **medallion architecture** with three zones:
 
 ### Prerequisites
 
-- Docker Desktop (Windows/Mac) or Docker Engine + Compose (Linux)
-- At least **16 GB RAM** allocated to Docker (Hadoop + Spark + Kafka are memory-hungry)
-- 20 GB free disk space
-- Python 3.10+ (for local development only)
+- **Docker Desktop** (Windows/Mac) or Docker Engine + Compose (Linux)
+- **16 GB RAM** allocated to Docker (Hadoop + Spark + Kafka are memory-hungry)
+- **20 GB** free disk space
+- Python 3.10+ (local development only)
 
-### Step 1: Clone and configure
+### Step 1: Clone & Configure
 
 ```bash
 git clone <repo-url>
@@ -587,52 +527,54 @@ Update `docker/.env`:
 AIRFLOW_UID=50000
 AIRFLOW_EXECUTOR=CeleryExecutor
 AIRFLOW_SECRET_KEY=egx-dev-secret-key
-AIRFLOW_FERNET_KEY=<paste your generated key here>
+AIRFLOW_FERNET_KEY=<paste your generated key>
 ```
 
-### Step 2: Start all services
+### Step 2: Start Services
 
 ```bash
 cd docker
 docker compose -f docker-compose.yml up -d
 ```
 
-Wait ~2 minutes for all health checks to pass, then verify:
+Wait ~2 minutes for health checks, then verify:
 ```bash
 docker compose -f docker-compose.yml ps
 ```
 
-### Step 3: Initialise HDFS directories
+### Step 3: Initialise HDFS
 
 ```bash
 docker exec egx-hadoop-namenode bash /opt/egx-pipeline/storage/init_hdfs.sh
 ```
 
-### Step 4: Register Hive tables
+### Step 4: Register Hive Tables
 
 ```bash
+# Windows (PowerShell)
 Get-Content serving/hive_tables.sql | docker exec -i egx-hive-server hive
-# On Linux/Mac:
-# cat serving/hive_tables.sql | docker exec -i egx-hive-server hive
+
+# Linux / macOS
+cat serving/hive_tables.sql | docker exec -i egx-hive-server hive
 ```
 
-### Step 5: Run initial ingestion manually
+### Step 5: Run Initial Pipeline
 
 ```bash
 # Ingest today's OHLCV data
 docker exec egx-airflow-worker bash -c "cd /opt/egx-pipeline && python -m ingestion.batch_ingest"
 
-# Run the ETL to produce curated data
+# Run ETL
 docker exec egx-spark-master bash -c "cd /opt/egx-pipeline && python3 -m processing.batch_etl"
 
 # Repair Hive partitions
 docker exec egx-hive-server hive -e "MSCK REPAIR TABLE egx_db.curated_ohlcv;"
 
-# Create the analytical views
+# Create analytical views
 cat serving/hive_views.sql | docker exec -i egx-hive-server hive
 ```
 
-### Step 6: Access the UIs
+### Step 6: Access UIs
 
 | UI | URL | Credentials |
 |---|---|---|
@@ -646,31 +588,29 @@ cat serving/hive_views.sql | docker exec -i egx-hive-server hive
 
 ## Power BI Connection
 
-1. Download and install [Simba Hive ODBC Driver v2.6.26 (64-bit)](https://www.cloudera.com/downloads/connectors/hive/odbc/2-6-26.html)
-2. Open **ODBC Data Sources (64-bit)** → **Add** → **Simba Hive ODBC Driver**
-   - DSN Name: `EGX_Hive`
-   - Host: `localhost`
-   - Port: `10000`
-   - Database: `egx_db`
-   - Authentication: No Authentication
-3. Test the connection — it should say "Successfully connected"
-4. Open Power BI Desktop → **Get Data** → **Other** → **ODBC**
-5. Select `EGX_Hive` → **OK** → **DirectQuery** mode
-6. Browse the Navigator and select the views you need
+1. Install [Simba Hive ODBC Driver v2.6.26 (64-bit)](https://www.cloudera.com/downloads/connectors/hive/odbc/2-6-26.html)
+2. Create a DSN in **ODBC Data Sources (64-bit)**:
+   - **DSN Name:** `EGX_Hive` · **Host:** `localhost` · **Port:** `10000` · **Database:** `egx_db` · **Auth:** None
+3. In Power BI: **Get Data → ODBC → Advanced Options → SQL statement** (do not use the Navigator — see [known bug](serving/powerbi_odbc.md#-odbc-error-hy000-clouderahardy-35-metaexceptionnullpointerexception))
+4. Select **DirectQuery** mode
 
-**Recommended views for dashboards:**
+---
 
-| View | Best For |
+## Power BI Dashboard Documentation
+
+Comprehensive documentation for every dashboard page, visual, and DAX measure is available in the **[`powerbi/`](powerbi/)** folder:
+
+| Document | Contents |
 |---|---|
-| `v_daily_summary` | Main candlestick + indicator dashboard |
-| `v_weekly_rollup` | Weekly bar charts and performance |
-| `v_top_movers` | Top gainers/losers card visual |
-| `v_rsi_signals` | RSI overbought/oversold screening table |
-| `v_bollinger_squeeze` | Volatility and squeeze alerts |
+| [`powerbi/README.md`](powerbi/README.md) | Index — pages, data sources, navigation |
+| [`powerbi/market_overview.md`](powerbi/market_overview.md) | Market Overview — KPIs, volume chart, movers, RSI pie |
+| [`powerbi/symbol_detail.md`](powerbi/symbol_detail.md) | Symbol Detail — Bollinger, SMA/EMA, MACD, RSI, volume |
+| [`powerbi/signals_and_risk.md`](powerbi/signals_and_risk.md) | Signals & Risk — RSI table, Bollinger width, scatter, gauge |
+| [`powerbi/live_ticks.md`](powerbi/live_ticks.md) | Live Ticks — market status, intraday chart, live table |
+| [`powerbi/measures.md`](powerbi/measures.md) | DAX Measures — full catalogue with expressions |
 
+---
 
-
-
-
-
-*Built for Egyptian Exchange market data analysis. The pipeline runs on Docker and is designed for local development and small-scale production use.*
+<p align="center">
+  <sub>Built for Egyptian Exchange market data analysis. Runs on Docker — designed for local development and small-scale production.</sub>
+</p>
